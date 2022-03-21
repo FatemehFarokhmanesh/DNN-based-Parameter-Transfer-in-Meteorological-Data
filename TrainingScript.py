@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from utils.automation.storage import MultiRunExperiment
 from utils.automation.devices import set_free_devices_as_visible
+from configs import ProjectConfigs
 from torch.utils.data import DataLoader
 
 from interface.numpy.datasets import WeatherBenchData, TimeVariateData, ConstantData
@@ -19,8 +20,7 @@ from utils import WelfordStatisticsTracker, ProgressBar
 from networks import SimpleResnet, UNet
 
 torch.set_num_threads(6)
-print('[INFO]TrainingScript.py')
-path = '/home/farokhmanesh/codes/numpy/32_64'
+path = ProjectConfigs().DATA_PATH
 
 data_path = {
     't2m': os.path.join(path, 't2m'),
@@ -149,7 +149,7 @@ validation_loader = DataLoader(validation_data, batch_size=batch_size, num_worke
 
 
 EXPERIMENT_DESCRIPTION = 'Example experiment for demonstrating the use of automation utils'
-EXPERIMENT_PATH = './script_experiment/t2m_val'
+EXPERIMENT_PATH = ProjectConfigs().EXPEREMENT_PATH
 
 
 if __name__ == '__main__':
