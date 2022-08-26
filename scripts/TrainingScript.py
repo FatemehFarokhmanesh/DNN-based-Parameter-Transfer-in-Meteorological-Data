@@ -7,11 +7,11 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 
 from utils.automation.storage import MultiRunExperiment
 from utils.automation.devices import set_free_devices_as_visible
 from configs import ProjectConfigs
-from torch.utils.data import DataLoader
 
 from interface.numpy.datasets import WeatherBenchData, TimeVariateData, ConstantData
 from interface.numpy.datastorage import WeatherBenchNPYStorage
@@ -130,20 +130,6 @@ training_loader = DataLoader(training_data, batch_size=batch_size, num_workers=4
 
 print('[INFO] Building validation data.')
 validation_data = data_pattern('2000-01-01-01', '2003-01-01-01')
-transformer_t2m.fit(validation_data.data_groups['input_data'][0], batch_size=fitting_batch_size)
-transformer_tcc.fit(validation_data.data_groups['input_data'][1], batch_size=fitting_batch_size)
-transformer_u10.fit(validation_data.data_groups['input_data'][2], batch_size=fitting_batch_size)
-transformer_v10.fit(validation_data.data_groups['input_data'][3], batch_size=fitting_batch_size)
-transformer_tp.fit(validation_data.data_groups['input_data'][4], batch_size=fitting_batch_size)
-transformer_tisr.fit(validation_data.data_groups['input_data'][5], batch_size=fitting_batch_size)
-transformer_orography.fit(validation_data.data_groups['input_data'][6], batch_size=fitting_batch_size)
-
-transformer_t2m.fit(validation_data.data_groups['target_data'][0], batch_size=fitting_batch_size)
-transformer_tcc.fit(validation_data.data_groups['target_data'][1], batch_size=fitting_batch_size)
-transformer_u10.fit(validation_data.data_groups['target_data'][2], batch_size=fitting_batch_size)
-transformer_v10.fit(validation_data.data_groups['target_data'][3], batch_size=fitting_batch_size)
-transformer_tp.fit(validation_data.data_groups['target_data'][4], batch_size=fitting_batch_size)
-transformer_tisr.fit(validation_data.data_groups['target_data'][5], batch_size=fitting_batch_size)
 
 validation_loader = DataLoader(validation_data, batch_size=batch_size, num_workers=4)
 
@@ -202,7 +188,7 @@ if __name__ == '__main__':
     loss_function = nn.L1Loss()
     optimizer = AdamW(model.parameters(), lr=0.0001, betas=(0.9, 0.999))
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.8, patience=5, threshold=0.001)
-    num_epochs = 100
+    num_epochs = 5
     stats_tracker = WelfordStatisticsTracker()
 
     # store initial checkpoint

@@ -1,3 +1,4 @@
+import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -134,6 +135,103 @@ class UNet(nn.Module):
         features10 = torch.cat([features1, features9], dim=1)
         features11 = self.hr_conv_layer_decoder(features10)
         return features11
+
+
+class SkipConnection(nn.Module):
+
+    def __init__(self, inner_module: nn.Module):
+        super(SkipConnection, self).__init__()
+        self.inner_module = inner_module
+
+    def forward(self, x):
+        return torch.cat([x, self.inner_module(x)], dim=1)
+
+
+class UNet(nn.Module):
+
+    @staticmethod
+    def init_parser(parser=None):
+        if parser is None:
+            parser = argparse.ArgumentParser()
+        group = parser.add_argument_group('unet')
+        group.add_argument('--model:unet:hidden-channels', type=int, default=None,
+                           help='hidden channels for unet model')
+        group.add_argument('--model:unet:depth', type=int, default=3,
+                           help='number of skip connections in unet model')
+        group.add_argument('--model:unet:padding-mode', type=str, default='replicate',
+                           help='padding mode for unet model')
+        group.add_argument('--model:unet:activation', type=str, default='LeakyReLU',
+                           help='nonlinear activation for unet model')
+        group.add_argument('--model:unet:dropout', type=float, default=0., help='dropout rate for unet model')
+        return parser
+
+    @classmethod
+    def from_dict(cls, in_channels, out_channels, args):
+        hidden_channels = args['model:unet:hidden_channels']
+        assert hidden_channels is not None, '[ERROR] Use of UNet model requires setting number of hidden channels!'
+        depth = args['model:unet:depth']
+        padding_mode = args['model:unet:padding_mode']
+        return cls(
+            in_channels, hidden_channels, out_channels, depth=depth, padding_mode=padding_mode,
+            activation=args['model:unet:activation'], dropout=args['model:unet:dropout']
+        )
+
+    def __init__(self, in_channels, hidden_channels, out_channels, depth=3, padding_mode='replicate', activation='LeakyReLU', dropout=0.):
+        super(UNet, self).__init__()
+        activation_class = getattr(nn, activation)
+        in_layer = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_channels, (5, 5), padding_mode=padding_mode, padding=(2, 2)),
+            nn.BatchNorm2d(hidden_channels),
+            nn.Dropout2d(dropout),
+            activation_class()
+        )
+        upper_channels = hidden_channels * 2 ** (depth - 1)
+        lower_channels = hidden_channels * 2 ** depth
+        unet = nn.Sequential(
+            nn.Conv2d(upper_channels, lower_channels, (3, 3), padding=(1, 1), padding_mode=padding_mode, stride=(2, 2)),
+            nn.BatchNorm2d(lower_channels),
+            activation_class(),
+            nn.Conv2d(lower_channels, lower_channels, (1, 1)),
+            nn.BatchNorm2d(lower_channels),
+            activation_class(),
+            nn.Dropout2d(dropout),
+            nn.ConvTranspose2d(lower_channels, upper_channels, (4, 4), padding_mode='zeros', padding=(1, 1), stride=(2, 2)),
+            nn.BatchNorm2d(upper_channels),
+            activation_class(),
+        )
+        for i in range(1, depth):
+            upper_channels = hidden_channels * 2 ** (depth - i - 1)
+            lower_channels = hidden_channels * 2 ** (depth - i)
+            unet = nn.Sequential(
+                nn.Conv2d(upper_channels, lower_channels, (3, 3), padding_mode=padding_mode, padding=(1, 1), stride=(2, 2)),
+                nn.BatchNorm2d(lower_channels),
+                nn.Dropout2d(dropout),
+                activation_class(),
+                SkipConnection(unet),
+                nn.Conv2d(2 * lower_channels, lower_channels, (3, 3), padding=(1, 1), padding_mode=padding_mode),
+                nn.BatchNorm2d(lower_channels),
+                nn.Dropout2d(dropout),
+                activation_class(),
+                nn.ConvTranspose2d(lower_channels, upper_channels, (4, 4), padding_mode='zeros', padding=(1, 1), stride=(2, 2)),
+                nn.BatchNorm2d(upper_channels),
+                activation_class(),
+            )
+        assert upper_channels == hidden_channels, f'[ERROR] upper channels: {upper_channels}, hidden_channels: {hidden_channels}'
+        out_layer = nn.Sequential(
+            nn.Conv2d(2 * upper_channels, upper_channels, (3, 3), padding=(1, 1), padding_mode=padding_mode),
+            nn.BatchNorm2d(upper_channels),
+            activation_class(),
+            nn.Conv2d(upper_channels, out_channels, (3, 3), padding=(1, 1), padding_mode=padding_mode)
+        )
+        self.model = nn.Sequential(
+            in_layer,
+            SkipConnection(unet),
+            out_layer,
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
 
 if __name__ == '__main__':
     unet = UNet(1, 1, 64)

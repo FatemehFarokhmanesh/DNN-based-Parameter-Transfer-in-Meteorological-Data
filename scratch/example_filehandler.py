@@ -113,11 +113,7 @@ class NetCDFDataStorage(Dataset):
 
     def get_data(self, idx):
         time_stamps = self._time_stamps[idx]
-        # time_stamp_order = np.argsort(time_stamps)
-        # time_stamps = time_stamps[time_stamp_order]
-        # order_inverse = np.sort(time_stamp_order)
         data = self.data.sel(time=time_stamps).values
-        # data = data[order_inverse]
         return torch.tensor(data)
 
     def __len__(self):

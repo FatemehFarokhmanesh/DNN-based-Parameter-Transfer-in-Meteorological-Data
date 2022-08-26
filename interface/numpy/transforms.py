@@ -245,4 +245,3 @@ class GlobalRandomOffset(Transform):
         offset = torch.rand(data.shape[0], 1, 1, 1, device=data.device, dtype=data.dtype)
         return data + ((self._max - self.min) * offset  + self._min)
 
-# TODO: Consider implementing patch cutting transform

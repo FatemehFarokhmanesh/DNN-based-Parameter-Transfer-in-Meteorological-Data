@@ -8,5 +8,6 @@ class ProjectConfigs:
     SCRIPT_PATH: str = './TrainingScript.py'
     INTERPRETER_PATH: str = HOME_DIR + '/anaconda3/envs/env_name/bin/python'
     QUEUE_PATH: str = './queue'
-    DATA_PATH: str = HOME_DIR + '/data_directory/numpy'
+    DATA_PATH: str = HOME_DIR + '/data_directory'
     EXPEREMENT_PATH: str = './script_experiment'
+    SERVER_NAME: str = 'server_name'

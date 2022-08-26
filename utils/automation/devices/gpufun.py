@@ -21,25 +21,6 @@ def call_nvidia_smi(print_output=False):
     return lines
 
 
-# def iterate_total_devices(smi_strings):
-#     proc_line_idx = [s.startswith('Processes:') for s in smi_strings].index(True)
-#     for line in smi_strings[8:proc_line_idx - 3:4]:
-#         yield line.split()[0].strip()
-#
-#
-# def iterate_occupied_devices(smi_strings):
-#     proc_line_idx = [s.startswith('Processes:') for s in smi_strings].index(True)
-#     for line in smi_strings[proc_line_idx + 4:-2]:
-#         if line.startswith('No running processes found'):
-#             break
-#         else:
-#             entries = [e.strip() for e in line.split()]
-#             process_name = entries[5]
-#             if process_name in admissible_processes:
-#                 continue
-#             yield line.split()[0].strip()
-
-
 def find_cuda_devices():
     smi_str = call_nvidia_smi()
     sep_iter = iter(i for i, line in enumerate(smi_str) if line.startswith('='))
